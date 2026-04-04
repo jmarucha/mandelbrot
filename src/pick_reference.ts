@@ -68,7 +68,7 @@ export function pickBestReference(
   // ── find pixel with highest escaped iteration count ────────────────────
   // The quick_pass shader writes col.r = t = i/maxIter for escaped pixels,
   // and black (0,0,0) for maxiter (interior) pixels.
-  let bestVal = -1;
+  let bestVal = 256*256*256;
   let bestX = PICK_SIZE / 2;
   let bestY = PICK_SIZE / 2;
 
@@ -76,13 +76,14 @@ export function pickBestReference(
     for (let px = 0; px < PICK_SIZE; px++) {
       const idx = (py * PICK_SIZE + px) * 4;
       const r = pixels[idx];
-      // const g = pixels[idx + 1];
-      // const b = pixels[idx + 2];
+      const g = pixels[idx + 1];
+      const b = pixels[idx + 2];
+      const v = (r*256+g)*256+b
       // Skip interior (black) pixels
       //if (r === 0 && g === 0 && b === 0) continue;
-      console.log(`r: ${r}`);
-      if (r > bestVal) {
-        bestVal = r;
+      console.log(`r: ${r}, g:${g}, b:${b}, v: ${v}`);
+      if (v < bestVal) {
+        bestVal = v;
         bestX = px;
         bestY = py;
       }

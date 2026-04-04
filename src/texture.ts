@@ -50,27 +50,37 @@ export function populateOrbitTexture(colormap: FloatTexture, cx: number, cy: num
   const SIZE = BUFF_SIZE;
   const data = new Float32Array(SIZE * SIZE * 4); // zeroed by default
 
-  let zx = 0.0;
-  let zy = 0.0;
+  let zr = 0.0;
+  let zi = 0.0;
+
+  let dzr = 1.0;
+  let dzi = 0.0;
 
   let n;
   maxN = Math.min(maxN, BUFF_SIZE*BUFF_SIZE);
-
+  //maxN = 0;
   for (n = 0; n < maxN; n++) {
-    const mod2 = zx * zx + zy * zy;
-    data[n * 4 + 0] = zx;
-    data[n * 4 + 1] = zy;
+    const mod2 = zr * zr + zi * zi;
+    data[n * 4 + 0] = zr;
+    data[n * 4 + 1] = zi;
 
     // todo: replace with dzx, dzy
-    data[n * 4 + 2] = mod2;
-    data[n * 4 + 3] = n / (SIZE - 1);
+    data[n * 4 + 2] = dzr;
+    data[n * 4 + 3] = dzi;
 
-    if (mod2 > 4.0) break;
+    if (mod2 > 64.) break;
 
-    const nx = zx * zx - zy * zy + cx;
-    const ny = 2.0 * zx * zy + cy
-    zx = nx;
-    zy = ny;
+    const n_zr = zr * zr - zi * zi + cx;
+    const n_zi = 2.0 * zr * zi + cy
+
+    const n_dzr = 2*(zr*dzr - zi*dzi);
+    const n_dzi = 2*(zr*dzi + zi*dzr);
+
+    zr = n_zr;
+    zi = n_zi;
+
+    dzr = n_dzr;
+    dzi = n_dzi;
   }
   colormap.iterNumber = n;
   colormap.upload(data);

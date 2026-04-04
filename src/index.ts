@@ -42,12 +42,13 @@ function main(): void {
 
   function full_render(): void {
     // // 1. Quick pass → pick best reference origin
-    if (false) {
+    if (true) {
       origin = pickBestReference(gl!, pickSetup, quickProgramInfo, bufferInfo,
         colormap.texture, center, scale, origin, 512);
-    }
+    } else {
     origin[0] = center[0];
     origin[1] = center[1];
+    }
     // // 2. Populate orbit texture from the chosen origin
     populateOrbitTexture(colormap, origin[0], origin[1], iter_guess());
 
@@ -72,7 +73,6 @@ function main(): void {
 
   // Zoom with scroll wheel
   canvas.addEventListener('wheel', (e: WheelEvent) => {
-    console.log(e)
     e.preventDefault();
     const factor = e.deltaY > 0 ? 1.1 : 0.9;
 
@@ -137,7 +137,7 @@ function main(): void {
   }
 
   function iter_guess(): number {
-    const estimate = 80-90*Math.log(scale/3.);
+    const estimate = 80-Math.min(0,90*Math.log(scale/3.));
     return Math.round(estimate);
   }
 }
