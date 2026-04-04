@@ -46,7 +46,7 @@ export function createFloatTexture(gl: WebGLRenderingContext): FloatTexture {
  *   R = Re(z_n), G = Im(z_n), B = |z_n|², A = n / 255
  * The remaining pixels are zeroed out.
  */
-export function populateOrbitTexture(colormap: FloatTexture, cx: number, cy: number, maxN: number = 65536): void {
+export function populateOrbitTexture(colormap: FloatTexture, cx: number, cy: number, maxN: number | undefined = BUFF_SIZE*BUFF_SIZE): void {
   const SIZE = BUFF_SIZE;
   const data = new Float32Array(SIZE * SIZE * 4); // zeroed by default
 
@@ -54,6 +54,8 @@ export function populateOrbitTexture(colormap: FloatTexture, cx: number, cy: num
   let zy = 0.0;
 
   let n;
+  maxN = Math.min(maxN, BUFF_SIZE*BUFF_SIZE);
+
   for (n = 0; n < maxN; n++) {
     const mod2 = zx * zx + zy * zy;
     data[n * 4 + 0] = zx;
@@ -70,7 +72,6 @@ export function populateOrbitTexture(colormap: FloatTexture, cx: number, cy: num
     zx = nx;
     zy = ny;
   }
-  console.log(n);
   colormap.iterNumber = n;
   colormap.upload(data);
 }

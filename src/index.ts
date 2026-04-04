@@ -47,7 +47,7 @@ function main(): void {
     origin[0] = center[0];
     origin[1] = center[1];
     // // 2. Populate orbit texture from the chosen origin
-    populateOrbitTexture(colormap, origin[0], origin[1], 2048);
+    populateOrbitTexture(colormap, origin[0], origin[1], iter_guess());
 
     // 3. Main render
     mandelbrot_render();
@@ -112,7 +112,7 @@ function main(): void {
     }
   });
 
-  function mandelbrot_render() {
+  function mandelbrot_render(): void {
     gl!.viewport(0, 0, canvas.width, canvas.height);
     gl!.useProgram(programInfo.program);
     twgl.setBuffersAndAttributes(gl!, programInfo, bufferInfo);
@@ -120,13 +120,18 @@ function main(): void {
       u_resolution: [canvas.width, canvas.height],
       u_center: center,
       u_scale: scale,
-      u_maxIter: 2048,
+      u_maxIter: iter_guess(),
       u_colormap: colormap.texture,
       u_colormapIterNumber: colormap.iterNumber,
       u_origin: origin,
       u_debug: debug ? 1 : 0,
     });
     twgl.drawBufferInfo(gl!, bufferInfo);
+  }
+
+  function iter_guess(): number {
+    const estimate = 80-90*Math.log(scale/3.);
+    return Math.round(estimate);
   }
 }
 
