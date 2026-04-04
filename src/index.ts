@@ -32,6 +32,8 @@ function main(): void {
   let debug  = false;
   let origin = [0.0, 0.0];
 
+  let time_0 = Date.now()
+
   function resize(): void {
     canvas.width  = canvas.clientWidth  * devicePixelRatio;
     canvas.height = canvas.clientHeight * devicePixelRatio;
@@ -61,6 +63,13 @@ function main(): void {
   resize();
   full_render();
 
+  // RAF loop
+  function loop(): void {
+    quick_render();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
   // Zoom with scroll wheel
   canvas.addEventListener('wheel', (e: WheelEvent) => {
     console.log(e)
@@ -76,8 +85,6 @@ function main(): void {
     center[0] += nx * aspect * scale * (1 - factor);
     center[1] -= ny * scale * (1 - factor);
     scale *= factor;
-
-    quick_render();
   }, { passive: false });
 
   // Pan with mouse drag
@@ -99,7 +106,6 @@ function main(): void {
     const dy = (e.clientY - dragStart[1]) / rect.height * scale;
     center[0] = centerStart[0] - dx;
     center[1] = centerStart[1] + dy;
-    quick_render();
   });
 
   window.addEventListener('mouseup', () => { dragging = false; full_render(); });
@@ -125,6 +131,7 @@ function main(): void {
       u_colormapIterNumber: colormap.iterNumber,
       u_origin: origin,
       u_debug: debug ? 1 : 0,
+      u_time: Date.now() - time_0,
     });
     twgl.drawBufferInfo(gl!, bufferInfo);
   }

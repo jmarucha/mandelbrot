@@ -61,9 +61,10 @@ void main() {
     z = cmul(z, z) + c;
     i += 1;
   }
-  float t = float(i) / float(u_maxIter);
-  float smooth_i = float(i) - log(dot(z,z))/log(ESCAPE_RADIUS);
-  vec3 col = 0.5 + 0.5 * cos(3.0 + smooth_i * 0.1 * vec3(1.0, 0.7, 0.4));
+  float smooth_i = float(i) - log2(log(dot(z,z))/log(ESCAPE_RADIUS));
+  float t = smooth_i / float(u_maxIter);
+  float l = sqrt(t);
+  vec3 col = l*(0.5 + 0.5 * cos(3.0 + u_time/1000. + smooth_i * 0.5 * vec3(1.0, 0.7, 0.4)));
 
   // crosshair at reference origin: dc == 0 exactly there
   // one-pixel size expressed in dc units
