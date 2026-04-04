@@ -38,37 +38,32 @@ function main(): void {
     gl!.viewport(0, 0, canvas.width, canvas.height);
   }
 
-  function render(): void {
-    // 1. Quick pass → pick best reference origin
-    origin = pickBestReference(gl!, pickSetup, quickProgramInfo, bufferInfo,
-      colormap.texture, center, scale, origin, 256);
-
-    // 2. Populate orbit texture from the chosen origin
-    populateOrbitTexture(colormap, origin[0], origin[1]);
+  function full_render(): void {
+    // // 1. Quick pass → pick best reference origin
+    if (false) {
+      origin = pickBestReference(gl!, pickSetup, quickProgramInfo, bufferInfo,
+        colormap.texture, center, scale, origin, 512);
+    }
+    origin[0] = center[0];
+    origin[1] = center[1];
+    // // 2. Populate orbit texture from the chosen origin
+    populateOrbitTexture(colormap, origin[0], origin[1], 2048);
 
     // 3. Main render
-    gl!.viewport(0, 0, canvas.width, canvas.height);
-    gl!.useProgram(programInfo.program);
-    twgl.setBuffersAndAttributes(gl!, programInfo, bufferInfo);
-    twgl.setUniforms(programInfo, {
-      u_resolution: [canvas.width, canvas.height],
-      u_center:     center,
-      u_scale:      scale,
-      u_maxIter:    1024,
-      u_colormap:   colormap.texture,
-      u_colormapIterNumber: colormap.iterNumber,
-      u_origin:     origin,
-      u_debug:      debug ? 1 : 0,
-    });
-    twgl.drawBufferInfo(gl!, bufferInfo);
+    mandelbrot_render();
   }
 
-  window.addEventListener('resize', () => { resize(); render(); });
+  function quick_render(): void {
+    mandelbrot_render();
+  }
+
+  window.addEventListener('resize', () => { resize(); full_render(); });
   resize();
-  render();
+  full_render();
 
   // Zoom with scroll wheel
   canvas.addEventListener('wheel', (e: WheelEvent) => {
+    console.log(e)
     e.preventDefault();
     const factor = e.deltaY > 0 ? 1.1 : 0.9;
 
@@ -81,9 +76,8 @@ function main(): void {
     center[0] += nx * aspect * scale * (1 - factor);
     center[1] -= ny * scale * (1 - factor);
     scale *= factor;
-    console.log(scale)
 
-    render();
+    quick_render();
   }, { passive: false });
 
   // Pan with mouse drag
@@ -105,18 +99,35 @@ function main(): void {
     const dy = (e.clientY - dragStart[1]) / rect.height * scale;
     center[0] = centerStart[0] - dx;
     center[1] = centerStart[1] + dy;
-    render();
+    quick_render();
   });
 
-  window.addEventListener('mouseup', () => { dragging = false; });
+  window.addEventListener('mouseup', () => { dragging = false; full_render(); });
 
   window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space') {
       e.preventDefault();
       debug = !debug;
-      render();
+      full_render();
     }
   });
+
+  function mandelbrot_render() {
+    gl!.viewport(0, 0, canvas.width, canvas.height);
+    gl!.useProgram(programInfo.program);
+    twgl.setBuffersAndAttributes(gl!, programInfo, bufferInfo);
+    twgl.setUniforms(programInfo, {
+      u_resolution: [canvas.width, canvas.height],
+      u_center: center,
+      u_scale: scale,
+      u_maxIter: 2048,
+      u_colormap: colormap.texture,
+      u_colormapIterNumber: colormap.iterNumber,
+      u_origin: origin,
+      u_debug: debug ? 1 : 0,
+    });
+    twgl.drawBufferInfo(gl!, bufferInfo);
+  }
 }
 
 main();

@@ -1,6 +1,6 @@
 import * as twgl from 'twgl.js';
 
-const PICK_SIZE = 256;
+const PICK_SIZE = 4;
 
 export interface PickSetup {
   fbo: WebGLFramebuffer;
@@ -63,6 +63,7 @@ export function pickBestReference(
   const pixels = new Uint8Array(PICK_SIZE * PICK_SIZE * 4);
   gl.readPixels(0, 0, PICK_SIZE, PICK_SIZE, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  console.log(pixels);
 
   // ── find pixel with highest escaped iteration count ────────────────────
   // The quick_pass shader writes col.r = t = i/maxIter for escaped pixels,
@@ -75,10 +76,11 @@ export function pickBestReference(
     for (let px = 0; px < PICK_SIZE; px++) {
       const idx = (py * PICK_SIZE + px) * 4;
       const r = pixels[idx];
-      const g = pixels[idx + 1];
-      const b = pixels[idx + 2];
+      // const g = pixels[idx + 1];
+      // const b = pixels[idx + 2];
       // Skip interior (black) pixels
-      if (r === 0 && g === 0 && b === 0) continue;
+      //if (r === 0 && g === 0 && b === 0) continue;
+      console.log(`r: ${r}`);
       if (r > bestVal) {
         bestVal = r;
         bestX = px;
@@ -86,10 +88,15 @@ export function pickBestReference(
       }
     }
   }
+  console.log(bestVal);
 
   // ── pixel → UV (1:1 aspect for PICK_SIZE × PICK_SIZE) → world ────────────
   const uvX = bestX / PICK_SIZE - 0.5;
   const uvY = bestY / PICK_SIZE - 0.5;
+  console.log([
+    uvX * scale + center[0],
+    uvY * scale + center[1],
+  ]);
   return [
     uvX * scale + center[0],
     uvY * scale + center[1],

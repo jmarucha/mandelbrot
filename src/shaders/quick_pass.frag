@@ -44,5 +44,5 @@ void main() {
   }
   float t = i / float(u_maxIter);
   vec3 col = vec3(t, 0., 0.);
-  gl_FragColor = (i == float(u_maxIter)) ? vec4(0.0, 0.0, 0.0, 1.0) : vec4(col, 1.0);
+  gl_FragColor = vec4(col, 1.0);
 }
