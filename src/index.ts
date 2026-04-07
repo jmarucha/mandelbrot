@@ -152,6 +152,7 @@ function main(): void {
   }
 
   function iter_guess(): number {
+    return 2048
     const estimate = 80 - Math.min(0, 90 * Math.log(camera.scale / 3.));
     return Math.round(estimate);
   }

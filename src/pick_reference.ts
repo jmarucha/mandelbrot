@@ -1,7 +1,7 @@
 import * as twgl from 'twgl.js';
 import BigNumber from 'bignumber.js';
 
-const PICK_SIZE = 4;
+const PICK_SIZE = 32;
 
 export interface PickSetup {
   fbo:     WebGLFramebuffer;
@@ -70,8 +70,8 @@ export function pickBestReference(
   gl.readPixels(0, 0, PICK_SIZE, PICK_SIZE, gl.RGBA, gl.FLOAT, pixels);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-  // Pick escaped pixel with lowest iteration count
-  let bestN = Infinity;
+  // Pick escaped pixel with highest iteration count
+  let bestN = -Infinity;
   let bestX = PICK_SIZE / 2;
   let bestY = PICK_SIZE / 2;
 
@@ -80,7 +80,7 @@ export function pickBestReference(
       const idx     = (py * PICK_SIZE + px) * 4;
       const n       = pixels[idx];
       const escaped = pixels[idx + 1];
-      if (escaped > 0.5 && n < bestN) {
+      if (escaped > 0.5 && n > bestN) {
         bestN = n;
         bestX = px;
         bestY = py;
