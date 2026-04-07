@@ -7,7 +7,7 @@ import { createPickFBO, pickBestReference } from './pick_reference';
 
 function main(): void {
   const canvas = document.getElementById('glCanvas') as HTMLCanvasElement;
-  const gl = canvas.getContext('webgl');
+  const gl = canvas.getContext('webgl2');
   if (!gl) { alert('WebGL not supported'); return; }
 
   const programInfo      = twgl.createProgramInfo(gl, [VERT_SRC, FRAG_SRC]);

@@ -10,10 +10,7 @@ const BUFF_SIZE = 64;
  * Creates a BUFF_SIZExBUFF_SIZE RGBA float texture (requires OES_texture_float).
  * upload() expects a Float32Array of length BUFF_SIZE * BUFF_SIZE * 4.
  */
-export function createFloatTexture(gl: WebGLRenderingContext): FloatTexture {
-  const ext = gl.getExtension('OES_texture_float');
-  if (!ext) throw new Error('OES_texture_float not supported');
-
+export function createFloatTexture(gl: WebGL2RenderingContext): FloatTexture {
   const texture = gl.createTexture();
   if (!texture) throw new Error('Failed to create texture');
 
@@ -24,7 +21,7 @@ export function createFloatTexture(gl: WebGLRenderingContext): FloatTexture {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
   // Allocate empty texture
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, BUFF_SIZE, BUFF_SIZE, 0, gl.RGBA, gl.FLOAT, null);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, BUFF_SIZE, BUFF_SIZE, 0, gl.RGBA, gl.FLOAT, null);
 
   return {
     texture,
@@ -34,7 +31,7 @@ export function createFloatTexture(gl: WebGLRenderingContext): FloatTexture {
         throw new Error(`Expected ${BUFF_SIZE * BUFF_SIZE * 4} floats, got ${data.length}`);
       }
       gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, BUFF_SIZE, BUFF_SIZE, 0, gl.RGBA, gl.FLOAT, data);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, BUFF_SIZE, BUFF_SIZE, 0, gl.RGBA, gl.FLOAT, data);
     },
   };
 }
