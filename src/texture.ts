@@ -50,7 +50,8 @@ export function populateOrbitTexture(
 ): void {
   let data, iterNumber;
   if (computeFn) {
-    const orbit = computeFn(cx.toFixed(50), cy.toFixed(50), Math.min(maxN, BUFF_SIZE * BUFF_SIZE), precision);
+    console.debug("Using WebGL");
+    const orbit = computeFn(cx.toFixed(150), cy.toFixed(150), Math.min(maxN, BUFF_SIZE * BUFF_SIZE), precision);
     data = new Float32Array(BUFF_SIZE * BUFF_SIZE * 4);
     data.set(orbit);
 

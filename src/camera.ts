@@ -49,6 +49,7 @@ export function createCamera(
       center[0] = center[0].plus(nx * aspect() * scale * (1 - factor));
       center[1] = center[1].minus(ny * scale * (1 - factor));
       scale *= factor;
+      console.log(scale);
     },
 
     zoomOut(screenX: number, screenY: number): void {
@@ -57,6 +58,7 @@ export function createCamera(
       center[0] = center[0].plus(nx * aspect() * scale * (1 - factor));
       center[1] = center[1].minus(ny * scale * (1 - factor));
       scale *= factor;
+      console.log(scale);
     },
 
     moveTo(screenX: number, screenY: number): void {

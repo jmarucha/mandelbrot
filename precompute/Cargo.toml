@@ -9,10 +9,10 @@ console_error_panic_hook = "0.1.7"
 wasm-bindgen = "0.2.117"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["cdylib"]
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
 
 [profile.release]
-panic = "unwind"   # domyślne, daje stack trace
+panic = "abort"
