@@ -4,6 +4,7 @@ import FRAG_SRC from './shaders/mandelbrot_pert.frag';
 import QUICK_FRAG from './shaders/quick_pass.frag';
 import { createFloatTexture, populateOrbitTexture } from './texture';
 import { createPickFBO, pickBestReference } from './pick_reference';
+import { createCamera } from './camera';
 
 function main(): void {
   const canvas = document.getElementById('glCanvas') as HTMLCanvasElement;
@@ -26,9 +27,7 @@ function main(): void {
     },
   });
 
-  // View state
-  let center = [0.0, 0.0];
-  let scale  = 3.0;
+  const camera = createCamera(canvas);
   let debug  = false;
   let origin = [0.0, 0.0];
 
@@ -44,10 +43,10 @@ function main(): void {
     // // 1. Quick pass → pick best reference origin
     if (true) {
       origin = pickBestReference(gl!, pickSetup, quickProgramInfo, bufferInfo,
-        colormap.texture, center, scale, origin, 512);
+        colormap.texture, camera.center, camera.scale, origin, 512);
     } else {
-    origin[0] = center[0];
-    origin[1] = center[1];
+    origin[0] = camera.center[0];
+    origin[1] = camera.center[1];
     }
     // // 2. Populate orbit texture from the chosen origin
     populateOrbitTexture(colormap, origin[0], origin[1], iter_guess());
@@ -74,38 +73,21 @@ function main(): void {
   // Zoom with scroll wheel
   canvas.addEventListener('wheel', (e: WheelEvent) => {
     e.preventDefault();
-    const factor = e.deltaY > 0 ? 1.1 : 0.9;
-
-    // Zoom towards cursor
-    const rect = canvas.getBoundingClientRect();
-    const nx = (e.clientX - rect.left) / rect.width  - 0.5;
-    const ny = (e.clientY - rect.top)  / rect.height - 0.5;
-    const aspect = canvas.width / canvas.height;
-
-    center[0] += nx * aspect * scale * (1 - factor);
-    center[1] -= ny * scale * (1 - factor);
-    scale *= factor;
+    if (e.deltaY > 0) camera.zoomOut(e.clientX, e.clientY);
+    else               camera.zoomIn(e.clientX, e.clientY);
   }, { passive: false });
 
   // Pan with mouse drag
   let dragging = false;
-  let dragStart = [0, 0];
-  let centerStart = [0, 0];
 
   canvas.addEventListener('mousedown', (e: MouseEvent) => {
     dragging = true;
-    dragStart = [e.clientX, e.clientY];
-    centerStart = [...center];
+    camera.startDrag(e.clientX, e.clientY);
   });
 
   window.addEventListener('mousemove', (e: MouseEvent) => {
     if (!dragging) return;
-    const rect = canvas.getBoundingClientRect();
-    const aspect = canvas.width / canvas.height;
-    const dx = (e.clientX - dragStart[0]) / rect.width  * aspect * scale;
-    const dy = (e.clientY - dragStart[1]) / rect.height * scale;
-    center[0] = centerStart[0] - dx;
-    center[1] = centerStart[1] + dy;
+    camera.drag(e.clientX, e.clientY);
   });
 
   window.addEventListener('mouseup', () => { dragging = false; full_render(); });
@@ -124,8 +106,8 @@ function main(): void {
     twgl.setBuffersAndAttributes(gl!, programInfo, bufferInfo);
     twgl.setUniforms(programInfo, {
       u_resolution: [canvas.width, canvas.height],
-      u_center: center,
-      u_scale: scale,
+      u_center: camera.center,
+      u_scale: camera.scale,
       u_maxIter: iter_guess(),
       u_colormap: colormap.texture,
       u_colormapIterNumber: colormap.iterNumber,
@@ -137,7 +119,7 @@ function main(): void {
   }
 
   function iter_guess(): number {
-    const estimate = 80-Math.min(0,90*Math.log(scale/3.));
+    const estimate = 80-Math.min(0,90*Math.log(camera.scale/3.));
     return Math.round(estimate);
   }
 }
