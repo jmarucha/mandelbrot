@@ -1,9 +1,7 @@
 import * as twgl from 'twgl.js';
-import VERT_SRC from './shaders/mandelbrot.vert';
 import FULLSCREEN_VERT from './shaders/fullscreen.vert';
 import COMPUTE_FRAG from './shaders/mandelbrot_compute.frag';
 import COLOR_FRAG from './shaders/mandelbrot_color.frag';
-import QUICK_FRAG from './shaders/quick_pass.frag';
 import { createFloatTexture, populateOrbitTexture } from './texture';
 import { createPickFBO, pickBestReference } from './pick_reference';
 import { createCamera } from './camera';
@@ -16,7 +14,6 @@ function main(): void {
 
   const computeProgramInfo = twgl.createProgramInfo(gl, [FULLSCREEN_VERT, COMPUTE_FRAG]);
   const colorProgramInfo   = twgl.createProgramInfo(gl, [FULLSCREEN_VERT, COLOR_FRAG]);
-  const quickProgramInfo   = twgl.createProgramInfo(gl, [VERT_SRC, QUICK_FRAG]);
 
   const colormap  = createFloatTexture(gl);
   const pickSetup = createPickFBO(gl);
@@ -55,9 +52,10 @@ function main(): void {
 
   function full_render(): void {
     if (origin_needs_repick()) {
+      console.debug("Picking Origin");
       // 1. Quick pass → pick best reference origin
-      origin = pickBestReference(gl!, pickSetup, quickProgramInfo, fullscreenQuad,
-        colormap.texture, camera.center, camera.scale, origin, 512);
+      origin = pickBestReference(gl!, pickSetup, computeProgramInfo, fullscreenQuad,
+        colormap.texture, camera.center, camera.scale, origin, iter_guess(), colormap.iterNumber ?? 0);
       // 2. Populate orbit texture from the chosen origin
       populateOrbitTexture(colormap, origin[0], origin[1], iter_guess());
     }

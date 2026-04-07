@@ -3,101 +3,93 @@ import * as twgl from 'twgl.js';
 const PICK_SIZE = 4;
 
 export interface PickSetup {
-  fbo: WebGLFramebuffer;
+  fbo:     WebGLFramebuffer;
+  texZDZ:  WebGLTexture;
+  texIter: WebGLTexture;
 }
 
-export function createPickFBO(gl: WebGLRenderingContext): PickSetup {
-  const tex = gl.createTexture();
-  if (!tex) throw new Error('Failed to create pick texture');
+function makePickTex(gl: WebGL2RenderingContext): WebGLTexture {
+  const tex = gl.createTexture()!;
   gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, PICK_SIZE, PICK_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, PICK_SIZE, PICK_SIZE, 0, gl.RGBA, gl.FLOAT, null);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-  const fbo = gl.createFramebuffer();
-  if (!fbo) throw new Error('Failed to create pick framebuffer');
-  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-  return { fbo };
+  return tex;
 }
 
-/**
- * Renders quick_pass to a 256×256 FBO, reads back pixels, and returns the
- * complex-plane coordinate of the escaped pixel with the highest iteration
- * count – a good perturbation-theory reference for the next frame.
- *
- * Falls back to center if nothing escapable is found.
- */
+export function createPickFBO(gl: WebGL2RenderingContext): PickSetup {
+  if (!gl.getExtension('EXT_color_buffer_float')) {
+    throw new Error('EXT_color_buffer_float not supported');
+  }
+  const texZDZ  = makePickTex(gl);
+  const texIter = makePickTex(gl);
+
+  const fbo = gl.createFramebuffer()!;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texZDZ,  0);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, texIter, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  return { fbo, texZDZ, texIter };
+}
+
 export function pickBestReference(
-  gl: WebGLRenderingContext,
+  gl: WebGL2RenderingContext,
   setup: PickSetup,
-  quickProgramInfo: twgl.ProgramInfo,
+  computeProgramInfo: twgl.ProgramInfo,
   bufferInfo: twgl.BufferInfo,
   colormap: WebGLTexture,
   center: number[],
   scale: number,
   origin: number[],
   maxIter: number,
+  colormapIterNumber: number,
 ): number[] {
-  // ── quick pass → FBO ──────────────────────────────────────────────────────
   gl.bindFramebuffer(gl.FRAMEBUFFER, setup.fbo);
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
   gl.viewport(0, 0, PICK_SIZE, PICK_SIZE);
-  gl.useProgram(quickProgramInfo.program);
-  twgl.setBuffersAndAttributes(gl, quickProgramInfo, bufferInfo);
-  twgl.setUniforms(quickProgramInfo, {
-    u_resolution: [PICK_SIZE, PICK_SIZE],
-    u_center:     center,
-    u_scale:      scale,
-    u_maxIter:    maxIter,
-    u_colormap:   colormap,
-    u_origin:     origin,
-    u_debug:      0,
+  gl.useProgram(computeProgramInfo.program);
+  twgl.setBuffersAndAttributes(gl, computeProgramInfo, bufferInfo);
+  twgl.setUniforms(computeProgramInfo, {
+    u_resolution:         [PICK_SIZE, PICK_SIZE],
+    u_center:             center,
+    u_scale:              scale,
+    u_maxIter:            maxIter,
+    u_colormap:           colormap,
+    u_colormapIterNumber: colormapIterNumber,
+    u_origin:             origin,
   });
   twgl.drawBufferInfo(gl, bufferInfo);
 
-  // ── readback ──────────────────────────────────────────────────────────────
-  const pixels = new Uint8Array(PICK_SIZE * PICK_SIZE * 4);
-  gl.readPixels(0, 0, PICK_SIZE, PICK_SIZE, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  // Read texIter (COLOR_ATTACHMENT1): (n, escaped, 0, 0)
+  gl.readBuffer(gl.COLOR_ATTACHMENT1);
+  const pixels = new Float32Array(PICK_SIZE * PICK_SIZE * 4);
+  gl.readPixels(0, 0, PICK_SIZE, PICK_SIZE, gl.RGBA, gl.FLOAT, pixels);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  console.log(pixels);
 
-  // ── find pixel with highest escaped iteration count ────────────────────
-  // The quick_pass shader writes col.r = t = i/maxIter for escaped pixels,
-  // and black (0,0,0) for maxiter (interior) pixels.
-  let bestVal = 256*256*256;
+  // Pick escaped pixel with lowest iteration count
+  let bestN = Infinity;
   let bestX = PICK_SIZE / 2;
   let bestY = PICK_SIZE / 2;
 
   for (let py = 0; py < PICK_SIZE; py++) {
     for (let px = 0; px < PICK_SIZE; px++) {
-      const idx = (py * PICK_SIZE + px) * 4;
-      const r = pixels[idx];
-      const g = pixels[idx + 1];
-      const b = pixels[idx + 2];
-      const v = (r*256+g)*256+b
-      // Skip interior (black) pixels
-      //if (r === 0 && g === 0 && b === 0) continue;
-      console.log(`r: ${r}, g:${g}, b:${b}, v: ${v}`);
-      if (v < bestVal) {
-        bestVal = v;
+      const idx     = (py * PICK_SIZE + px) * 4;
+      const n       = pixels[idx];
+      const escaped = pixels[idx + 1];
+      if (escaped > 0.5 && n < bestN) {
+        bestN = n;
         bestX = px;
         bestY = py;
       }
     }
   }
-  console.log(bestVal);
 
-  // ── pixel → UV (1:1 aspect for PICK_SIZE × PICK_SIZE) → world ────────────
-  const uvX = bestX / PICK_SIZE - 0.5;
-  const uvY = bestY / PICK_SIZE - 0.5;
-  console.log([
-    uvX * scale + center[0],
-    uvY * scale + center[1],
-  ]);
+  // Pixel centre → UV (same aspect correction as the compute shader)
+  const uvX = (bestX + 0.5) / PICK_SIZE - 0.5;
+  const uvY = (bestY + 0.5) / PICK_SIZE - 0.5;
   return [
     uvX * scale + center[0],
     uvY * scale + center[1],
