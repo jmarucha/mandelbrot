@@ -8,6 +8,11 @@ import { createPickFBO, pickBestReference } from './pick_reference';
 import { createCamera } from './camera';
 import { createComputeFBO, resizeComputeFBO } from './compute_fbo';
 
+import('precompute').then(wasm => {
+  (window as any).computeOrbitBN = wasm.computeOrbitBN;
+  (window as any).testWASM = wasm.testWASM;
+});
+
 function main(): void {
   const canvas = document.getElementById('glCanvas') as HTMLCanvasElement;
   const gl = canvas.getContext('webgl2');

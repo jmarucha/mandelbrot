@@ -14,6 +14,9 @@ module.exports = (env, argv) => {
     },
     resolve: {
       extensions: ['.ts', '.js'],
+      alias: {
+        precompute: path.resolve(__dirname, 'precompute/pkg'),
+      },
     },
     module: {
       rules: [
@@ -34,6 +37,9 @@ module.exports = (env, argv) => {
       }),
     ],
     devtool: isDev ? 'eval-source-map' : 'source-map',
+    experiments: {
+      asyncWebAssembly: true,
+    },
     devServer: {
       static: './dist',
       port: 8080,

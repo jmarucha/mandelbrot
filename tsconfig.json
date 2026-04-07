@@ -9,7 +9,10 @@
     "rootDir": "./src",
     "sourceMap": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "paths": {
+      "precompute": ["./precompute/pkg"]
+    },
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

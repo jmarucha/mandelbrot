@@ -60,7 +60,7 @@ export function pickBestReference(
     u_maxIter:            maxIter,
     u_colormap:           colormap,
     u_colormapIterNumber: colormapIterNumber,
-    u_decenter:            [center[0].minus(origin[0]).toNumber(), center[1].minus(origin[1]).toNumber()],
+    u_dcenter:            [center[0].minus(origin[0]).toNumber(), center[1].minus(origin[1]).toNumber()],
   });
   twgl.drawBufferInfo(gl, bufferInfo);
 

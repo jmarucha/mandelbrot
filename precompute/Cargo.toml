@@ -1,0 +1,18 @@
+[package]
+name = "precompute"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+astro-float = { version = "0.9.5", features = ["std"], default-features = false }
+console_error_panic_hook = "0.1.7"
+wasm-bindgen = "0.2.117"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[profile.release]
+panic = "unwind"   # domyślne, daje stack trace
