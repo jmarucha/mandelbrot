@@ -45,12 +45,14 @@ const N_RUST = 4096;
 
 (async () => {
   const { Bench } = await import('tinybench');
-  const { computeOrbitBN: rustFn } = await import('./precompute/pkg-node/precompute.js');
-  const bench = new Bench({ time: 1 });
+  const { compute_orbit_bn: rustFn } = await import('./precompute/pkg-node/precompute.js');
+  const bench = new Bench({ time: 10 });
 
-  bench
-    // .add(`float64 N=${N_F64}`,       () => computeOrbitF64(CX_F64, CY_F64, N_F64))
-    .add(`Rust(150b) N=${N_BN}`,   () => computeOrbitRust(rustFn, CX_BN, CY_BN, N_RUST, 150))
+  for (const n of [64, 256, 1024, 4096]) {
+    bench
+      .add(`float64 N=${n}`,       () => computeOrbitF64(CX_F64, CY_F64, n))
+      .add(`Rust(150b) N=${n}`,   () => computeOrbitRust(rustFn, CX_BN, CY_BN, n, 150))
+  }
     // .add(`BigNumber(50) N=${N_BN}`,  () => computeOrbitBN(CX_BN,  CY_BN,  N_BN))
     // .add(`float64 N=${N_BN}`,        () => computeOrbitF64(CX_F64, CY_F64, N_BN));
 
@@ -64,6 +66,5 @@ const N_RUST = 4096;
 
   console.log('Running...');
   await bench.run();
-  console.log('');
   console.table(bench.table());
 })();

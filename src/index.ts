@@ -35,7 +35,8 @@ function main(): void {
 
   let orbitComputeFn: ((cx: string, cy: string, maxN: number, precision: number) => Float32Array) | null = null;
   import('precompute').then(wasm => {
-    orbitComputeFn = wasm.computeOrbitBN as typeof orbitComputeFn;
+    orbitComputeFn = wasm.compute_orbit_bn as typeof orbitComputeFn;
+    (window as any).test_wasm = wasm.test_wasm;
     full_render();
   });
 
@@ -65,7 +66,7 @@ function main(): void {
       origin = pickBestReference(gl!, pickSetup, computeProgramInfo, fullscreenQuad,
         colormap.texture, camera.center, camera.scale, origin, iter_guess(), colormap.iterNumber ?? 0);
       // 2. Populate orbit texture from the chosen origin
-      populateOrbitTexture(colormap, origin[0], origin[1], iter_guess(), 150, orbitComputeFn);
+      populateOrbitTexture(colormap, origin[0], origin[1], iter_guess(), 300, orbitComputeFn);
     }
 
     // 3. Compute pass (writes to MRT FBO)
