@@ -8,11 +8,6 @@ import { createPickFBO, pickBestReference } from './pick_reference';
 import { createCamera } from './camera';
 import { createComputeFBO, resizeComputeFBO } from './compute_fbo';
 
-import('precompute').then(wasm => {
-  (window as any).computeOrbitBN = wasm.computeOrbitBN;
-  (window as any).testWASM = wasm.testWASM;
-});
-
 function main(): void {
   const canvas = document.getElementById('glCanvas') as HTMLCanvasElement;
   const gl = canvas.getContext('webgl2');
@@ -38,6 +33,12 @@ function main(): void {
   let origin: [BigNumber, BigNumber] = [new BigNumber(0), new BigNumber(0)];
   let time_0 = Date.now();
 
+  let orbitComputeFn: ((cx: string, cy: string, maxN: number, precision: number) => Float32Array) | null = null;
+  import('precompute').then(wasm => {
+    orbitComputeFn = wasm.computeOrbitBN as typeof orbitComputeFn;
+    full_render();
+  });
+
   // Init canvas size before creating the FBO
   canvas.width  = canvas.clientWidth  * devicePixelRatio;
   canvas.height = canvas.clientHeight * devicePixelRatio;
@@ -57,13 +58,14 @@ function main(): void {
   }
 
   function full_render(): void {
+    if (!orbitComputeFn) return;
     if (origin_needs_repick()) {
       console.debug("Picking Origin");
       // 1. Quick pass → pick best reference origin
       origin = pickBestReference(gl!, pickSetup, computeProgramInfo, fullscreenQuad,
         colormap.texture, camera.center, camera.scale, origin, iter_guess(), colormap.iterNumber ?? 0);
       // 2. Populate orbit texture from the chosen origin
-      populateOrbitTexture(colormap, origin[0].toNumber(), origin[1].toNumber(), iter_guess());
+      populateOrbitTexture(colormap, origin[0], origin[1], iter_guess(), 150, orbitComputeFn);
     }
 
     // 3. Compute pass (writes to MRT FBO)

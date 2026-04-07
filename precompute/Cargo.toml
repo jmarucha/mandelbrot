@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-astro-float = { version = "0.9.5", features = ["std"], default-features = false }
+dashu = "0.4"
 console_error_panic_hook = "0.1.7"
 wasm-bindgen = "0.2.117"
 

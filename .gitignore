@@ -1,4 +1,5 @@
 dist
 node_modules
 precompute/pkg
+precompute/pkg-node
 precompute/target

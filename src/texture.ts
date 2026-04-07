@@ -1,15 +1,15 @@
+import BigNumber from "bignumber.js";
+
 export interface FloatTexture {
   texture: WebGLTexture;
   iterNumber: number | null;
   upload(data: Float32Array): void;
 }
 
+export type OrbitComputeFn = (cx: string, cy: string, maxN: number, precision: number) => Float32Array;
 
 const BUFF_SIZE = 64;
-/**
- * Creates a BUFF_SIZExBUFF_SIZE RGBA float texture (requires OES_texture_float).
- * upload() expects a Float32Array of length BUFF_SIZE * BUFF_SIZE * 4.
- */
+
 export function createFloatTexture(gl: WebGL2RenderingContext): FloatTexture {
   const texture = gl.createTexture();
   if (!texture) throw new Error('Failed to create texture');
@@ -20,16 +20,12 @@ export function createFloatTexture(gl: WebGL2RenderingContext): FloatTexture {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-  // Allocate empty texture
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, BUFF_SIZE, BUFF_SIZE, 0, gl.RGBA, gl.FLOAT, null);
 
   return {
     texture,
     iterNumber: null,
     upload(data: Float32Array): void {
-      if (data.length !== BUFF_SIZE * BUFF_SIZE * 4) {
-        throw new Error(`Expected ${BUFF_SIZE * BUFF_SIZE * 4} floats, got ${data.length}`);
-      }
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, BUFF_SIZE, BUFF_SIZE, 0, gl.RGBA, gl.FLOAT, data);
     },
@@ -43,7 +39,32 @@ export function createFloatTexture(gl: WebGL2RenderingContext): FloatTexture {
  *   R = Re(z_n), G = Im(z_n), B = |z_n|², A = n / 255
  * The remaining pixels are zeroed out.
  */
-export function populateOrbitTexture(colormap: FloatTexture, cx: number, cy: number, maxN: number | undefined = BUFF_SIZE*BUFF_SIZE): void {
+
+export function populateOrbitTexture(
+  colormap: FloatTexture,
+  cx: BigNumber,
+  cy: BigNumber,
+  maxN = BUFF_SIZE * BUFF_SIZE,
+  precision: number,
+  computeFn: OrbitComputeFn | null,
+): void {
+  let data, iterNumber;
+  if (computeFn) {
+    const orbit = computeFn(cx.toFixed(50), cy.toFixed(50), Math.min(maxN, BUFF_SIZE * BUFF_SIZE), precision);
+    data = new Float32Array(BUFF_SIZE * BUFF_SIZE * 4);
+    data.set(orbit);
+
+    colormap.iterNumber = orbit.length / 4;
+  } else {
+    [data, iterNumber] = populateOrbitTextureFallback(cx.toNumber(), cy.toNumber(), Math.min(maxN, BUFF_SIZE * BUFF_SIZE))
+
+    colormap.iterNumber = iterNumber;
+  }
+
+  colormap.upload(data);
+}
+
+export function populateOrbitTextureFallback(cx: number, cy: number, maxN: number | undefined = BUFF_SIZE*BUFF_SIZE): [Float32Array, number] {
   const SIZE = BUFF_SIZE;
   const data = new Float32Array(SIZE * SIZE * 4); // zeroed by default
 
@@ -78,7 +99,6 @@ export function populateOrbitTexture(colormap: FloatTexture, cx: number, cy: num
 
     dzr = n_dzr;
     dzi = n_dzi;
-  }
-  colormap.iterNumber = n;
-  colormap.upload(data);
+  };
+  return [data, 3];
 }

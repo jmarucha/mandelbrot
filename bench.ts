@@ -35,8 +35,8 @@ function computeOrbitBN(cx: BigNumber, cy: BigNumber, maxN: number): void {
   }
 }
 
-function computeOrbitRust(fn: (cx: string, cy: string, maxN: number, arraySize: number) => Float32Array, cx: BigNumber, cy: BigNumber, maxN: number): void {
-  fn(cx.toFixed(50), cy.toFixed(50), maxN, maxN * 4);
+function computeOrbitRust(fn: (cx: string, cy: string, maxN: number, precision: number) => Float32Array, cx: BigNumber, cy: BigNumber, maxN: number, precision: number): void {
+  fn(cx.toFixed(50), cy.toFixed(50), maxN, precision);
 }
 
 const N_F64  = 4096;
@@ -50,7 +50,7 @@ const N_RUST = 4096;
 
   bench
     // .add(`float64 N=${N_F64}`,       () => computeOrbitF64(CX_F64, CY_F64, N_F64))
-    .add(`Rust(150b) N=${N_BN}`,   () => computeOrbitRust(rustFn, CX_BN, CY_BN, N_BN))
+    .add(`Rust(150b) N=${N_BN}`,   () => computeOrbitRust(rustFn, CX_BN, CY_BN, N_RUST, 150))
     // .add(`BigNumber(50) N=${N_BN}`,  () => computeOrbitBN(CX_BN,  CY_BN,  N_BN))
     // .add(`float64 N=${N_BN}`,        () => computeOrbitF64(CX_F64, CY_F64, N_BN));
 
