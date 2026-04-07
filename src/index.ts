@@ -1,4 +1,5 @@
 import * as twgl from 'twgl.js';
+import BigNumber from 'bignumber.js';
 import FULLSCREEN_VERT from './shaders/fullscreen.vert';
 import COMPUTE_FRAG from './shaders/mandelbrot_compute.frag';
 import COLOR_FRAG from './shaders/mandelbrot_color.frag';
@@ -29,7 +30,7 @@ function main(): void {
   });
 
   const camera = createCamera(canvas);
-  let origin = [0.0, 0.0];
+  let origin: [BigNumber, BigNumber] = [new BigNumber(0), new BigNumber(0)];
   let time_0 = Date.now();
 
   // Init canvas size before creating the FBO
@@ -45,8 +46,8 @@ function main(): void {
   }
 
   function origin_needs_repick(): boolean {
-    const dx = camera.center[0] - origin[0];
-    const dy = camera.center[1] - origin[1];
+    const dx = camera.center[0].minus(origin[0]).toNumber();
+    const dy = camera.center[1].minus(origin[1]).toNumber();
     return Math.hypot(dx, dy) > 2 * camera.scale;
   }
 
@@ -57,7 +58,7 @@ function main(): void {
       origin = pickBestReference(gl!, pickSetup, computeProgramInfo, fullscreenQuad,
         colormap.texture, camera.center, camera.scale, origin, iter_guess(), colormap.iterNumber ?? 0);
       // 2. Populate orbit texture from the chosen origin
-      populateOrbitTexture(colormap, origin[0], origin[1], iter_guess());
+      populateOrbitTexture(colormap, origin[0].toNumber(), origin[1].toNumber(), iter_guess());
     }
 
     // 3. Compute pass (writes to MRT FBO)
@@ -116,12 +117,12 @@ function main(): void {
     twgl.setBuffersAndAttributes(gl!, computeProgramInfo, fullscreenQuad);
     twgl.setUniforms(computeProgramInfo, {
       u_resolution:         [w, h],
-      u_center:             camera.center,
+      u_center:             [camera.center[0].toNumber(), camera.center[1].toNumber()],
       u_scale:              camera.scale,
       u_maxIter:            iter_guess(),
       u_colormap:           colormap.texture,
       u_colormapIterNumber: colormap.iterNumber,
-      u_origin:             origin,
+      u_dcenter:            [camera.center[0].minus(origin[0]).toNumber(), camera.center[1].minus(origin[1]).toNumber()],
     });
     twgl.drawBufferInfo(gl!, fullscreenQuad);
   }

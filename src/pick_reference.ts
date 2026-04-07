@@ -1,4 +1,5 @@
 import * as twgl from 'twgl.js';
+import BigNumber from 'bignumber.js';
 
 const PICK_SIZE = 4;
 
@@ -41,12 +42,12 @@ export function pickBestReference(
   computeProgramInfo: twgl.ProgramInfo,
   bufferInfo: twgl.BufferInfo,
   colormap: WebGLTexture,
-  center: number[],
+  center: [BigNumber, BigNumber],
   scale: number,
-  origin: number[],
+  origin: [BigNumber, BigNumber],
   maxIter: number,
   colormapIterNumber: number,
-): number[] {
+): [BigNumber, BigNumber] {
   gl.bindFramebuffer(gl.FRAMEBUFFER, setup.fbo);
   gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
   gl.viewport(0, 0, PICK_SIZE, PICK_SIZE);
@@ -54,12 +55,12 @@ export function pickBestReference(
   twgl.setBuffersAndAttributes(gl, computeProgramInfo, bufferInfo);
   twgl.setUniforms(computeProgramInfo, {
     u_resolution:         [PICK_SIZE, PICK_SIZE],
-    u_center:             center,
+    u_center:             [center[0].toNumber(), center[1].toNumber()],
     u_scale:              scale,
     u_maxIter:            maxIter,
     u_colormap:           colormap,
     u_colormapIterNumber: colormapIterNumber,
-    u_origin:             origin,
+    u_decenter:            [center[0].minus(origin[0]).toNumber(), center[1].minus(origin[1]).toNumber()],
   });
   twgl.drawBufferInfo(gl, bufferInfo);
 
@@ -91,7 +92,7 @@ export function pickBestReference(
   const uvX = (bestX + 0.5) / PICK_SIZE - 0.5;
   const uvY = (bestY + 0.5) / PICK_SIZE - 0.5;
   return [
-    uvX * scale + center[0],
-    uvY * scale + center[1],
+    center[0].plus(uvX * scale),
+    center[1].plus(uvY * scale),
   ];
 }

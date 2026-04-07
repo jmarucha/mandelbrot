@@ -1,5 +1,9 @@
+import BigNumber from 'bignumber.js';
+
+BigNumber.config({ DECIMAL_PLACES: 50 });
+
 export interface Camera {
-  center: [number, number];
+  center: [BigNumber, BigNumber];
   scale: number;
   zoomIn(screenX: number, screenY: number): void;
   zoomOut(screenX: number, screenY: number): void;
@@ -13,7 +17,10 @@ export function createCamera(
   initialCenter: [number, number] = [0, 0],
   initialScale = 3.0,
 ): Camera {
-  const center: [number, number] = [...initialCenter];
+  const center: [BigNumber, BigNumber] = [
+    new BigNumber(initialCenter[0]),
+    new BigNumber(initialCenter[1]),
+  ];
   let scale = initialScale;
 
   // NDC offset from canvas center: [-0.5, 0.5] x [-0.5, 0.5]
@@ -30,44 +37,43 @@ export function createCamera(
   }
 
   let dragStartNdc: [number, number] = [0, 0];
-  let dragStartCenter: [number, number] = [0, 0];
+  let dragStartCenter: [BigNumber, BigNumber] = [new BigNumber(0), new BigNumber(0)];
 
   return {
-    get center(): [number, number] { return center; },
+    get center(): [BigNumber, BigNumber] { return center; },
     get scale(): number { return scale; },
 
     zoomIn(screenX: number, screenY: number): void {
       const [nx, ny] = toNdc(screenX, screenY);
       const factor = 0.9;
-      center[0] += nx * aspect() * scale * (1 - factor);
-      center[1] -= ny * scale * (1 - factor);
+      center[0] = center[0].plus(nx * aspect() * scale * (1 - factor));
+      center[1] = center[1].minus(ny * scale * (1 - factor));
       scale *= factor;
     },
 
     zoomOut(screenX: number, screenY: number): void {
       const [nx, ny] = toNdc(screenX, screenY);
       const factor = 1.1;
-      center[0] += nx * aspect() * scale * (1 - factor);
-      center[1] -= ny * scale * (1 - factor);
+      center[0] = center[0].plus(nx * aspect() * scale * (1 - factor));
+      center[1] = center[1].minus(ny * scale * (1 - factor));
       scale *= factor;
     },
 
-    // Pan so that the world point at (screenX, screenY) becomes the new center.
     moveTo(screenX: number, screenY: number): void {
       const [nx, ny] = toNdc(screenX, screenY);
-      center[0] += nx * aspect() * scale;
-      center[1] -= ny * scale;
+      center[0] = center[0].plus(nx * aspect() * scale);
+      center[1] = center[1].minus(ny * scale);
     },
 
     startDrag(screenX: number, screenY: number): void {
       dragStartNdc = toNdc(screenX, screenY);
-      dragStartCenter = [...center] as [number, number];
+      dragStartCenter = [center[0], center[1]];
     },
 
     drag(screenX: number, screenY: number): void {
       const [nx, ny] = toNdc(screenX, screenY);
-      center[0] = dragStartCenter[0] - (nx - dragStartNdc[0]) * aspect() * scale;
-      center[1] = dragStartCenter[1] + (ny - dragStartNdc[1]) * scale;
+      center[0] = dragStartCenter[0].minus((nx - dragStartNdc[0]) * aspect() * scale);
+      center[1] = dragStartCenter[1].plus((ny - dragStartNdc[1]) * scale);
     },
   };
 }

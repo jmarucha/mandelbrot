@@ -7,7 +7,7 @@ uniform float     u_scale;
 uniform int       u_maxIter;
 uniform sampler2D u_colormap;
 uniform int       u_colormapIterNumber;
-uniform vec2      u_origin;
+uniform vec2      u_dcenter;  // precomputed: u_center - origin
 
 layout(location = 0) out vec4 o_zdz;   // Re(z), Im(z), Re(dz), Im(dz)
 layout(location = 1) out vec4 o_iter;  // n, escaped (0/1), 0, 0
@@ -35,7 +35,7 @@ void main() {
   vec2 uv = (gl_FragCoord.xy / u_resolution - 0.5) * vec2(u_resolution.x / u_resolution.y, 1.0);
 
   vec2 c  = uv * u_scale + u_center;
-  vec2 dc = uv * u_scale + (u_center - u_origin);
+  vec2 dc = uv * u_scale + u_dcenter;
 
   vec2 z_pert  = vec2(0.0);
   vec2 dz_pert = vec2(0.0);

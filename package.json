@@ -21,6 +21,7 @@
     "webpack-dev-server": "^5.2.3"
   },
   "dependencies": {
+    "bignumber.js": "^10.0.2",
     "twgl.js": "^7.0.0"
   }
 }
