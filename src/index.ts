@@ -59,7 +59,6 @@ function main(): void {
   }
 
   function full_render(): void {
-    if (!orbitComputeFn) return;
     if (origin_needs_repick()) {
       console.debug("Picking Origin");
       // 1. Quick pass → pick best reference origin
@@ -73,9 +72,23 @@ function main(): void {
     compute_render();
   }
 
-  window.addEventListener('resize', () => { resize(); full_render(); });
+  let sync: WebGLSync | null = null;
+  function full_render_sif(): void {
+    if (sync != null) {
+      let status = gl!.clientWaitSync(sync, 0, 0)
+      if (status == gl!.TIMEOUT_EXPIRED) {
+        return; // still rendering
+      } else {
+        gl!.deleteSync(sync);
+      }
+    }
+    sync = gl!.fenceSync(gl!.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    full_render();
+  }
+
+  window.addEventListener('resize', () => { resize(); full_render_sif(); });
   resize();
-  full_render();
+  full_render_sif();
 
   // RAF loop — only re-colors every frame (palette animates via u_time)
   function loop(): void {
@@ -89,7 +102,7 @@ function main(): void {
     e.preventDefault();
     if (e.deltaY > 0) camera.zoomOut(e.clientX, e.clientY);
     else               camera.zoomIn(e.clientX, e.clientY);
-    full_render();
+    full_render_sif();
   }, { passive: false });
 
   // Pan with mouse drag
@@ -103,15 +116,15 @@ function main(): void {
   window.addEventListener('mousemove', (e: MouseEvent) => {
     if (!dragging) return;
     camera.drag(e.clientX, e.clientY);
-    full_render();
+    full_render_sif();
   });
 
-  window.addEventListener('mouseup', () => { dragging = false; full_render(); });
+  window.addEventListener('mouseup', () => { dragging = false; full_render_sif(); });
 
   window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space') {
       e.preventDefault();
-      full_render();
+      full_render_sif();
     }
   });
 

@@ -50,7 +50,7 @@ export function populateOrbitTexture(
 ): void {
   let data, iterNumber;
   if (computeFn) {
-    console.debug("Using WebGL");
+    console.debug("Using WASM(Rust)");
     const orbit = computeFn(cx.toFixed(150), cy.toFixed(150), Math.min(maxN, BUFF_SIZE * BUFF_SIZE), precision);
     data = new Float32Array(BUFF_SIZE * BUFF_SIZE * 4);
     data.set(orbit);
