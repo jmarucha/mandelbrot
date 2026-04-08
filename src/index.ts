@@ -74,6 +74,7 @@ function main(): void {
 
   let sync: WebGLSync | null = null;
   function full_render_sif(): void {
+    /* single-in-flight Mandelbrot compute render */
     if (sync != null) {
       let status = gl!.clientWaitSync(sync, 0, 0)
       if (status == gl!.TIMEOUT_EXPIRED) {
@@ -124,6 +125,44 @@ function main(): void {
   window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space') {
       e.preventDefault();
+      full_render_sif();
+    }
+  });
+
+
+  window.addEventListener('touchstart', (e: TouchEvent) => {
+    e.preventDefault();
+    if (e.targetTouches.length == 1) {
+      const first = e.targetTouches[0];
+      camera.startDrag(first.clientX, first.clientY);
+    }
+    if (e.targetTouches.length == 2) {
+      const first = e.targetTouches[0];
+      const second = e.targetTouches[1];
+      camera.startPinch([first.clientX, first.clientY], [second.clientX, second.clientY]);
+    }
+  }, { passive: false });
+  
+  window.addEventListener('touchmove', (e: TouchEvent) => {
+    e.preventDefault();
+    if (e.targetTouches.length == 1) {
+      const first = e.targetTouches[0];
+      camera.drag(first.clientX, first.clientY);
+    }
+    if (e.targetTouches.length == 2) {
+      const first = e.targetTouches[0];
+      const second = e.targetTouches[1];
+      camera.pinch([first.clientX, first.clientY], [second.clientX, second.clientY]);
+    }
+    full_render_sif();
+  }, { passive: false });
+  window.addEventListener('touchend', (e: TouchEvent) => {
+    e.preventDefault();
+    if (e.targetTouches.length == 1) {
+      const first = e.targetTouches[0];
+      camera.startDrag(first.clientX, first.clientY);
+    }
+    if (e.targetTouches.length == 0) {
       full_render_sif();
     }
   });

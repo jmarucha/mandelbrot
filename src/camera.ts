@@ -10,6 +10,9 @@ export interface Camera {
   moveTo(screenX: number, screenY: number): void;
   startDrag(screenX: number, screenY: number): void;
   drag(screenX: number, screenY: number): void;
+
+  startPinch(c1: [number, number], c2: [number, number]): void;
+  pinch(c1: [number, number], c2: [number, number]): void;
 }
 
 export function createCamera(
@@ -38,6 +41,12 @@ export function createCamera(
 
   let dragStartNdc: [number, number] = [0, 0];
   let dragStartCenter: [BigNumber, BigNumber] = [new BigNumber(0), new BigNumber(0)];
+
+  let pinchStartNdc: [number, number] = [0, 0];
+  let pinchStartCenter: [BigNumber, BigNumber] = [new BigNumber(0), new BigNumber(0)];
+
+  let pinchOrigDistance: number;
+  let pinchOrigScale: number;
 
   return {
     get center(): [BigNumber, BigNumber] { return center; },
@@ -76,6 +85,29 @@ export function createCamera(
       const [nx, ny] = toNdc(screenX, screenY);
       center[0] = dragStartCenter[0].minus((nx - dragStartNdc[0]) * aspect() * scale);
       center[1] = dragStartCenter[1].plus((ny - dragStartNdc[1]) * scale);
+    },
+
+    startPinch(c1: [number, number], c2: [number, number]): void {
+      const c1_ndc = toNdc(c1[0], c1[1]);
+      const c2_ndc = toNdc(c2[0], c2[1]);
+      pinchStartNdc = [(c1_ndc[0]+c2_ndc[0])/2, (c1_ndc[1]+c2_ndc[1])/2]
+      pinchStartCenter = [center[0], center[1]];
+      pinchOrigDistance = Math.sqrt((c1_ndc[0]-c2_ndc[0])**2 + (c1_ndc[1]-c2_ndc[1])**2)
+      pinchOrigScale = scale
+    },
+    pinch(c1: [number, number], c2: [number, number]): void {
+      const c1_ndc = toNdc(c1[0], c1[1]);
+      const c2_ndc = toNdc(c2[0], c2[1]);
+
+      let [nx, ny] = [(c1_ndc[0]+c2_ndc[0])/2, (c1_ndc[1]+c2_ndc[1])/2]
+
+      center[0] = pinchStartCenter[0].minus((nx - pinchStartNdc[0]) * aspect() * scale);
+      center[1] = pinchStartCenter[1].plus((ny - pinchStartNdc[1]) * scale);
+
+
+      let pinchCurrentDistance = Math.sqrt((c1_ndc[0]-c2_ndc[0])**2 + (c1_ndc[1]-c2_ndc[1])**2)
+
+      scale = pinchOrigScale * pinchOrigDistance / pinchCurrentDistance
     },
   };
 }
