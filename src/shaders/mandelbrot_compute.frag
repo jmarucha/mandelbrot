@@ -13,7 +13,7 @@ layout(location = 0) out vec4 o_zdz;   // Re(z), Im(z), Re(dz), Im(dz)
 layout(location = 1) out vec4 o_iter;  // n, escaped (0/1), 0, 0
 
 #define BUFF_SIZE 64
-#define ESCAPE_RADIUS 16.0
+#define ESCAPE_RADIUS 4096.0
 
 vec2 cmul(vec2 a, vec2 b) {
   return vec2(

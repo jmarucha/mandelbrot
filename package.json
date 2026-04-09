@@ -28,6 +28,7 @@
   "dependencies": {
     "@wasm-tool/wasm-pack-plugin": "^1.7.0",
     "bignumber.js": "^10.0.2",
+    "lil-gui": "^0.21.0",
     "twgl.js": "^7.0.0"
   }
 }

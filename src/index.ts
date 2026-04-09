@@ -1,5 +1,6 @@
 import * as twgl from 'twgl.js';
 import BigNumber from 'bignumber.js';
+import { GUI } from 'lil-gui';
 import FULLSCREEN_VERT from './shaders/fullscreen.vert';
 import COMPUTE_FRAG from './shaders/mandelbrot_compute.frag';
 import COLOR_FRAG from './shaders/mandelbrot_color.frag';
@@ -31,6 +32,15 @@ function main(): void {
 
   const camera = createCamera(canvas);
   let origin: [BigNumber, BigNumber] = [new BigNumber(0), new BigNumber(0)];
+
+  const guiParams = { colouringMode: 'Distance', shadeDE: false };
+  const gui = new GUI({autoPlace: true});
+  gui.add(guiParams, 'colouringMode', ['Distance', 'Escape Time'])
+    .name('Colouring Mode')
+    .onChange(() => { color_render(); });
+  gui.add(guiParams, 'shadeDE')
+    .name('Shade close points')
+    .onChange(() => { color_render(); });
   let time_0 = Date.now();
 
   let orbitComputeFn: ((cx: string, cy: string, maxN: number, precision: number) => Float32Array) | null = null;
@@ -198,14 +208,15 @@ function main(): void {
       u_resolution: [w, h],
       u_texZDZ:     computeFbo.texZDZ,
       u_texIter:    computeFbo.texIter,
-      u_time:       Date.now() - time_0,
-      u_scale:      camera.scale,
+      u_time:           Date.now() - time_0,
+      u_scale:          camera.scale,
+      u_colouring_mode: guiParams.colouringMode === 'Distance' ? 0 : 1,
+      u_shade_de:       guiParams.shadeDE ? 1 : 0,
     });
     twgl.drawBufferInfo(gl!, fullscreenQuad);
   }
 
   function iter_guess(): number {
-    return 2048
     const estimate = 80 - Math.min(0, 90 * Math.log(camera.scale / 3.));
     return Math.round(estimate);
   }
