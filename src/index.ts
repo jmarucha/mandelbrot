@@ -65,7 +65,7 @@ function main(): void {
   function origin_needs_repick(): boolean {
     const dx = camera.center[0].minus(origin[0]).toNumber();
     const dy = camera.center[1].minus(origin[1]).toNumber();
-    return Math.hypot(dx, dy) > 2 * camera.scale;
+    return Math.hypot(dx, dy) > 1 * camera.scale;
   }
 
   function full_render(): void {
