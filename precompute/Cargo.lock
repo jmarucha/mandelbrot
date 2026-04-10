@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "autocfg"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
+
+[[package]]
 name = "bumpalo"
 version = "3.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -54,6 +60,7 @@ dependencies = [
  "dashu-int",
  "num-modular",
  "num-order",
+ "num-traits",
  "rustversion",
  "static_assertions",
 ]
@@ -68,6 +75,7 @@ dependencies = [
  "dashu-base",
  "num-modular",
  "num-order",
+ "num-traits",
  "rustversion",
  "static_assertions",
 ]
@@ -99,6 +107,7 @@ dependencies = [
  "dashu-int",
  "num-modular",
  "num-order",
+ "num-traits",
  "rustversion",
 ]
 
@@ -115,6 +124,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "537b596b97c40fcf8056d153049eb22f481c17ebce72a513ec9286e4986d1bb6"
 dependencies = [
  "num-modular",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
+dependencies = [
+ "autocfg",
 ]
 
 [[package]]
@@ -135,6 +153,7 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "dashu",
+ "num-traits",
  "wasm-bindgen",
 ]
 

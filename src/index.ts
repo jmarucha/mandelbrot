@@ -45,7 +45,7 @@ function main(): void {
 
   let orbitComputeFn: ((cx: string, cy: string, maxN: number, precision: number) => Float32Array) | null = null;
   import('precompute').then(wasm => {
-    orbitComputeFn = wasm.compute_orbit_bn as typeof orbitComputeFn;
+    orbitComputeFn = wasm.compute_orbit_binary as typeof orbitComputeFn;
     (window as any).test_wasm = wasm.test_wasm;
     full_render();
   });

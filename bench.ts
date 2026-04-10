@@ -1,6 +1,12 @@
 import BigNumber from 'bignumber.js';
 
-BigNumber.config({ DECIMAL_PLACES: 50 });
+
+const DECIMAL_PLACES = 50;
+const BINARY_PLACES = 150;
+BigNumber.config({ DECIMAL_PLACES });
+
+const FP64_PRECISION=53;
+const FP32_PRECISION=24;
 
 const CX_F64 = -0.5;
 const CY_F64 = 0.0;
@@ -45,26 +51,24 @@ const N_RUST = 4096;
 
 (async () => {
   const { Bench } = await import('tinybench');
-  const { compute_orbit_bn: rustFn } = await import('./precompute/pkg-node/precompute.js');
+  const {
+    compute_orbit_binary,
+    compute_orbit_decimal,
+  } = await import('./precompute/pkg-node/precompute.js');
   const bench = new Bench({ time: 10 });
-
-  for (const n of [64, 256, 1024, 4096]) {
+  for (const n of [4096]) {
     bench
-      .add(`float64 N=${n}`,       () => computeOrbitF64(CX_F64, CY_F64, n))
-      .add(`Rust(150b) N=${n}`,   () => computeOrbitRust(rustFn, CX_BN, CY_BN, n, 150))
+      .add(`JS  (f64)  N=${n}`, () => computeOrbitF64(CX_F64, CY_F64, n))
+      .add(`Rust(${BINARY_PLACES}b) N=${n}`, () => computeOrbitRust(compute_orbit_binary, CX_BN, CY_BN, n, BINARY_PLACES))
+      .add(`Rust(f64) N=${n}`, () => computeOrbitRust(compute_orbit_binary, CX_BN, CY_BN, n, FP64_PRECISION))
+      .add(`Rust(f32) N=${n}`, () => computeOrbitRust(compute_orbit_binary, CX_BN, CY_BN, n, FP32_PRECISION))
   }
-    // .add(`BigNumber(50) N=${N_BN}`,  () => computeOrbitBN(CX_BN,  CY_BN,  N_BN))
-    // .add(`float64 N=${N_BN}`,        () => computeOrbitF64(CX_F64, CY_F64, N_BN));
-
-  bench.addEventListener('cycle', (e: Event) => {
-    const t = (e as any).task;
-    if (t?.result) {
-      const ms = (t.result.latency.mean / 1e6).toFixed(3);
-      console.log(`✓ ${t.name.padEnd(24)} ${ms} ms/op`);
-    }
-  });
+  bench
+  //  .add(`BigNumber(${DECIMAL_PLACES}) N=${N_BN}`,  () => computeOrbitBN(CX_BN,  CY_BN, N_BN))
+    .add(`Rust(${DECIMAL_PLACES}d) N=${N_BN}`,  () => computeOrbitRust(compute_orbit_decimal, CX_BN, CY_BN, N_BN, FP32_PRECISION))
+    .add(`Rust(${BINARY_PLACES}b) N=${N_BN}`,  () => computeOrbitRust(compute_orbit_binary, CX_BN, CY_BN, N_BN, FP32_PRECISION))
 
   console.log('Running...');
   await bench.run();
-  console.table(bench.table());
+  console.table(bench.table(), ['Task name', 'Throughput avg (ops/s)', 'Throughput med (ops/s)'] );
 })();

@@ -92,14 +92,14 @@ export function populateOrbitTextureFallback(cx: number, cy: number, maxN: numbe
     const n_zr = zr * zr - zi * zi + cx;
     const n_zi = 2.0 * zr * zi + cy
 
-    const n_dzr = 2*(zr*dzr - zi*dzi);
-    const n_dzi = 2*(zr*dzi + zi*dzr);
+    //const n_dzr = 2*(zr*dzr - zi*dzi);
+    //const n_dzi = 2*(zr*dzi + zi*dzr);
 
     zr = n_zr;
     zi = n_zi;
 
-    dzr = n_dzr;
-    dzi = n_dzi;
+    //dzr = n_dzr;
+    //dzi = n_dzi;
   };
   return [data, 3];
 }
