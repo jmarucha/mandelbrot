@@ -132,15 +132,14 @@ function main(): void {
 
   window.addEventListener('mouseup', () => { dragging = false; full_render_sif(); });
 
-  window.addEventListener('keydown', (e: KeyboardEvent) => {
+  canvas.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space') {
-      e.preventDefault();
       full_render_sif();
     }
   });
 
 
-  window.addEventListener('touchstart', (e: TouchEvent) => {
+  canvas.addEventListener('touchstart', (e: TouchEvent) => {
     e.preventDefault();
     if (e.targetTouches.length == 1) {
       const first = e.targetTouches[0];
@@ -152,8 +151,8 @@ function main(): void {
       camera.startPinch([first.clientX, first.clientY], [second.clientX, second.clientY]);
     }
   }, { passive: false });
-  
-  window.addEventListener('touchmove', (e: TouchEvent) => {
+
+  canvas.addEventListener('touchmove', (e: TouchEvent) => {
     e.preventDefault();
     if (e.targetTouches.length == 1) {
       const first = e.targetTouches[0];
@@ -166,7 +165,7 @@ function main(): void {
     }
     full_render_sif();
   }, { passive: false });
-  window.addEventListener('touchend', (e: TouchEvent) => {
+  canvas.addEventListener('touchend', (e: TouchEvent) => {
     e.preventDefault();
     if (e.targetTouches.length == 1) {
       const first = e.targetTouches[0];
