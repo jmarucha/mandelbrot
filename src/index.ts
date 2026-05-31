@@ -9,6 +9,11 @@ import { createPickFBO, pickBestReference } from './pick_reference';
 import { createCamera } from './camera';
 import { createComputeFBO, resizeComputeFBO } from './compute_fbo';
 
+function hexToRgb(hex: string): [number, number, number] {
+  const v = parseInt(hex.slice(1), 16);
+  return [(v >> 16 & 255) / 255, (v >> 8 & 255) / 255, (v & 255) / 255];
+}
+
 function main(): void {
   const canvas = document.getElementById('glCanvas') as HTMLCanvasElement;
   canvas.tabIndex = 0;
@@ -37,20 +42,35 @@ function main(): void {
 
   const guiParams = {
     colouringMode: 'Distance', shadeDE: false, trapImage: '',
+    colouringModeInt: 'Plain Color',
     speed: 1.0, phase: 0.0,
     trapPt0X: 0.0, trapPt0Y: 0.0, trapPt1X: -1.0, trapPt1Y: 0.0, trapPt2X: 0.0, trapPt2Y: 1.0,
     trapPt3X: -0.5, trapPt3Y: 0.5,
     invert: false,
+    invertInt: false,
+    colorInt: '#000000',
+    colorExt: '#ff0000',
   };
   const gui = new GUI({autoPlace: true});
-  gui.add(guiParams, 'colouringMode', ['Distance', 'Escape Time', 'Orbit Traps', 'Point Traps'])
-    .name('Colouring Mode')
+  const COLOUR_MODES = ['Distance', 'Escape Time', 'Orbit Traps', 'Point Traps', 'Plain Color'];
+  gui.add(guiParams, 'colouringMode', COLOUR_MODES)
+    .name('Exterior')
+    .onChange(() => { updateModeVisibility(); color_render(); });
+  gui.add(guiParams, 'colouringModeInt', COLOUR_MODES)
+    .name('Interior')
+    .onChange(() => { updateModeVisibility(); color_render(); });
+  const ctrlColorInt = gui.addColor(guiParams, 'colorInt').name('Interior Color')
+    .onChange(() => { color_render(); });
+  const ctrlColorExt = gui.addColor(guiParams, 'colorExt').name('Exterior Color')
     .onChange(() => { color_render(); });
   gui.add(guiParams, 'shadeDE')
     .name('Shade close points')
     .onChange(() => { color_render(); });
   gui.add(guiParams, 'invert')
-    .name('Invert')
+    .name('Invert Exterior')
+    .onChange(() => { color_render(); });
+  gui.add(guiParams, 'invertInt')
+    .name('Invert Interior')
     .onChange(() => { color_render(); });
 
   // Trap image texture
@@ -83,11 +103,11 @@ function main(): void {
     };
     img.src = URL.createObjectURL(file);
   });
-  gui.add(guiParams, 'trapImage').name('Trap Image').disable();
-  gui.add({ load() { fileInput.click(); } }, 'load').name('Load Trap Image');
-  gui.add(guiParams, 'speed', 0.0, 10.0, 0.1).name('Trap Speed')
+  const ctrlTrapImageName = gui.add(guiParams, 'trapImage').name('Trap Image').disable();
+  const ctrlTrapImageLoad = gui.add({ load() { fileInput.click(); } }, 'load').name('Load Trap Image');
+  const ctrlSpeed = gui.add(guiParams, 'speed', 0.0, 10.0, 0.1).name('Trap Speed')
     .onChange(() => { color_render(); });
-  gui.add(guiParams, 'phase', 0.0, 6.283, 0.01).name('Trap Phase')
+  const ctrlPhase = gui.add(guiParams, 'phase', 0.0, 6.283, 0.01).name('Trap Phase')
     .onChange(() => { color_render(); });
 
   const trapFolder = gui.addFolder('Trap Points');
@@ -99,6 +119,24 @@ function main(): void {
   trapFolder.add(guiParams, 'trapPt2Y', -2, 2, 0.01).name('Point 2 Y').onChange(() => { full_render(); });
   trapFolder.add(guiParams, 'trapPt3X', -2, 2, 0.01).name('Point 3 X').onChange(() => { full_render(); });
   trapFolder.add(guiParams, 'trapPt3Y', -2, 2, 0.01).name('Point 3 Y').onChange(() => { full_render(); });
+
+  function updateModeVisibility(): void {
+    const modes = [guiParams.colouringMode, guiParams.colouringModeInt];
+    // const anyPlain = modes.includes('Plain Color');
+    const anyTraps = modes.includes('Orbit Traps') || modes.includes('Point Traps');
+    const anyPtTraps = modes.includes('Point Traps');
+
+    ctrlColorInt.show(guiParams.colouringModeInt === 'Plain Color');
+    ctrlColorExt.show(guiParams.colouringMode === 'Plain Color');
+
+    ctrlSpeed.show(anyTraps);
+    ctrlPhase.show(anyTraps);
+    ctrlTrapImageName.show(anyTraps);
+    ctrlTrapImageLoad.show(anyTraps);
+
+    anyPtTraps ? trapFolder.show() : trapFolder.hide();
+  }
+  updateModeVisibility();
 
   let time_0 = Date.now();
 
@@ -300,11 +338,15 @@ function main(): void {
       u_hasTrapImage: trapImageTex ? 1 : 0,
       u_time:           Date.now() - time_0,
       u_scale:          camera.scale,
-      u_colouring_mode: ['Distance', 'Escape Time', 'Orbit Traps', 'Point Traps'].indexOf(guiParams.colouringMode),
+      u_colouring_mode_ext: COLOUR_MODES.indexOf(guiParams.colouringMode),
+      u_colouring_mode_int: COLOUR_MODES.indexOf(guiParams.colouringModeInt),
+      u_plainColorInt:  hexToRgb(guiParams.colorInt),
+      u_plainColorExt:  hexToRgb(guiParams.colorExt),
       u_shade_de:       guiParams.shadeDE ? 1 : 0,
       u_speed:          guiParams.speed,
       u_phase:          guiParams.phase,
       u_invert:         guiParams.invert ? 1 : 0,
+      u_invertInt:      guiParams.invertInt ? 1 : 0,
     });
     twgl.drawBufferInfo(gl!, fullscreenQuad);
   }

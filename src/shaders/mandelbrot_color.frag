@@ -11,11 +11,15 @@ uniform int       u_hasTrapImage;
 uniform float     u_time;
 uniform float     u_scale;
 uniform float     u_debug;
-uniform int       u_colouring_mode; // 0 = DISTANCE_ESTIMATE, 1 = ITER_NUM
+uniform int       u_colouring_mode_ext; // 0 = DISTANCE_ESTIMATE, 1 = ITER_NUM, 2 = ORBIT_TRAPS, 3 = POINT_TRAPS, 4 = PLAIN_COLOR
+uniform int       u_colouring_mode_int; // same enum, for interior
+uniform vec3      u_plainColorInt;
+uniform vec3      u_plainColorExt;
 uniform int       u_shade_de;        // 1 = shade based on DE, 0 = flat colour
 uniform float     u_speed;
 uniform float     u_phase;
 uniform int       u_invert;
+uniform int       u_invertInt;
 
 out vec4 fragColor;
 
@@ -80,30 +84,31 @@ void main() {
 
   float phase;
   vec3 col;
-  if (u_colouring_mode == 0) {
+
+  int mode = (escaped > 0.5) ? u_colouring_mode_ext : u_colouring_mode_int;
+
+  if (mode == 0) {
     // Distance Estimate
     phase = u_time / 1000.0 + log((d_pixels+0.25)/50.);
     col = (0.5 + 0.5 * cos(3.0 + phase * vec3(1.0, 0.7, 0.4)));
-    // if (escaped < 0.5) {
-    //   fragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    //   return;
-    // }
-  } else if (u_colouring_mode == 1) {
+  } else if (mode == 1) {
     // Escape Time
     phase = u_time / 1000.0 + smooth_i * 0.5;
     col = (0.5 + 0.5 * cos(3.0 + phase * vec3(1.0, 0.7, 0.4)));
-    // if (escaped < 0.5) {
-    //   fragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    //   return;
-    // }
-  } else if (u_colouring_mode == 2) {
+  } else if (mode == 2) {
     // Orbit Traps
     col = fns_swizzle_smooth(u_time / 1000.0, traps);
-  } else {
+  } else if (mode == 3) {
     // Point Traps
     col = fns_swizzle_smooth(u_time / 1000.0, ptTraps);
+  } else {
+    // Plain Color
+    col = (escaped > 0.5) ? u_plainColorExt : u_plainColorInt;
   }
-  if (u_invert == 1) {
+  if (escaped > 0.5 && u_invert == 1) {
+    col = vec3(1.0) - col;
+  }
+  if (escaped < 0.5 && u_invertInt == 1) {
     col = vec3(1.0) - col;
   }
 
