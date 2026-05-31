@@ -53,10 +53,11 @@ function main(): void {
   };
   const gui = new GUI({autoPlace: true});
   const COLOUR_MODES = ['Distance', 'Escape Time', 'Orbit Traps', 'Point Traps', 'Plain Color'];
+  const COLOUR_MODES_INT = ['Orbit Traps', 'Point Traps', 'Plain Color'];
   gui.add(guiParams, 'colouringMode', COLOUR_MODES)
     .name('Exterior')
     .onChange(() => { updateModeVisibility(); color_render(); });
-  gui.add(guiParams, 'colouringModeInt', COLOUR_MODES)
+  gui.add(guiParams, 'colouringModeInt', COLOUR_MODES_INT)
     .name('Interior')
     .onChange(() => { updateModeVisibility(); color_render(); });
   const ctrlColorInt = gui.addColor(guiParams, 'colorInt').name('Interior Color')

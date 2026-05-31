@@ -28,6 +28,11 @@ vec2 cmul(vec2 a, vec2 b) {
   );
 }
 
+vec2 cdiv(vec2 a, vec2 b) {
+  float d = dot(b, b);
+  return vec2(a.x*b.x + a.y*b.y, a.y*b.x - a.x*b.y) / d;
+}
+
 vec4 get_precalc(int n) {
   int y = n / BUFF_SIZE;
   int x = (n < BUFF_SIZE) ? n : n - y * BUFF_SIZE;

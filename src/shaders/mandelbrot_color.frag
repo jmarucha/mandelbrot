@@ -82,6 +82,10 @@ void main() {
   float d_pixels = d / u_scale * u_resolution.x * 2.0;
   float l = clamp(d_pixels+0.2, 0.0, 1.0);
 
+  // Interior distance from compute pass
+  float d_int = iter.b;
+  float d_int_pixels = d_int / u_scale * u_resolution.x * 2.0;
+
   float phase;
   vec3 col;
 
@@ -89,7 +93,11 @@ void main() {
 
   if (mode == 0) {
     // Distance Estimate
-    phase = u_time / 1000.0 + log((d_pixels+0.25)/50.);
+    if (escaped > 0.5) {
+      phase = u_time / 1000.0 + log((d_pixels+0.25)/50.);
+    } else {
+      phase = u_time / 1000.0 + log((d_int_pixels+0.25)/50.);
+    }
     col = (0.5 + 0.5 * cos(3.0 + phase * vec3(1.0, 0.7, 0.4)));
   } else if (mode == 1) {
     // Escape Time
@@ -112,9 +120,8 @@ void main() {
     col = vec3(1.0) - col;
   }
 
-  if (u_shade_de == 1) {
-    col *= l;
-  }
+    float shade = (escaped > 0.5 && u_shade_de == 1) ? l : 1.0;
+    col *= shade;
 
 
   if (u_hasTrapImage == 1) {
