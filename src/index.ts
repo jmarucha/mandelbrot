@@ -11,6 +11,8 @@ import { createComputeFBO, resizeComputeFBO } from './compute_fbo';
 
 function main(): void {
   const canvas = document.getElementById('glCanvas') as HTMLCanvasElement;
+  canvas.tabIndex = 0;
+  canvas.focus();
   const gl = canvas.getContext('webgl2');
   if (!gl) { alert('WebGL not supported'); return; }
 
@@ -33,14 +35,71 @@ function main(): void {
   const camera = createCamera(canvas);
   let origin: [BigNumber, BigNumber] = [new BigNumber(0), new BigNumber(0)];
 
-  const guiParams = { colouringMode: 'Distance', shadeDE: false };
+  const guiParams = {
+    colouringMode: 'Distance', shadeDE: false, trapImage: '',
+    speed: 1.0, phase: 0.0,
+    trapPt0X: 0.0, trapPt0Y: 0.0, trapPt1X: -1.0, trapPt1Y: 0.0, trapPt2X: 0.0, trapPt2Y: 1.0,
+    trapPt3X: -0.5, trapPt3Y: 0.5,
+    invert: false,
+  };
   const gui = new GUI({autoPlace: true});
-  gui.add(guiParams, 'colouringMode', ['Distance', 'Escape Time'])
+  gui.add(guiParams, 'colouringMode', ['Distance', 'Escape Time', 'Orbit Traps', 'Point Traps'])
     .name('Colouring Mode')
     .onChange(() => { color_render(); });
   gui.add(guiParams, 'shadeDE')
     .name('Shade close points')
     .onChange(() => { color_render(); });
+  gui.add(guiParams, 'invert')
+    .name('Invert')
+    .onChange(() => { color_render(); });
+
+  // Trap image texture
+  let trapImageTex: WebGLTexture | null = null;
+  function createTrapImageTex(img: HTMLImageElement) {
+    if (trapImageTex) gl!.deleteTexture(trapImageTex);
+    trapImageTex = gl!.createTexture()!;
+    gl!.bindTexture(gl!.TEXTURE_2D, trapImageTex);
+    gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, gl!.RGBA, gl!.UNSIGNED_BYTE, img);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.REPEAT);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.REPEAT);
+    gl!.bindTexture(gl!.TEXTURE_2D, null);
+    color_render();
+  }
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/*';
+  fileInput.style.display = 'none';
+  document.body.appendChild(fileInput);
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      createTrapImageTex(img);
+      guiParams.trapImage = file.name;
+      gui.controllersRecursive().forEach(c => c.updateDisplay());
+    };
+    img.src = URL.createObjectURL(file);
+  });
+  gui.add(guiParams, 'trapImage').name('Trap Image').disable();
+  gui.add({ load() { fileInput.click(); } }, 'load').name('Load Trap Image');
+  gui.add(guiParams, 'speed', 0.0, 10.0, 0.1).name('Trap Speed')
+    .onChange(() => { color_render(); });
+  gui.add(guiParams, 'phase', 0.0, 6.283, 0.01).name('Trap Phase')
+    .onChange(() => { color_render(); });
+
+  const trapFolder = gui.addFolder('Trap Points');
+  trapFolder.add(guiParams, 'trapPt0X', -2, 2, 0.01).name('Point 0 X').onChange(() => { full_render(); });
+  trapFolder.add(guiParams, 'trapPt0Y', -2, 2, 0.01).name('Point 0 Y').onChange(() => { full_render(); });
+  trapFolder.add(guiParams, 'trapPt1X', -2, 2, 0.01).name('Point 1 X').onChange(() => { full_render(); });
+  trapFolder.add(guiParams, 'trapPt1Y', -2, 2, 0.01).name('Point 1 Y').onChange(() => { full_render(); });
+  trapFolder.add(guiParams, 'trapPt2X', -2, 2, 0.01).name('Point 2 X').onChange(() => { full_render(); });
+  trapFolder.add(guiParams, 'trapPt2Y', -2, 2, 0.01).name('Point 2 Y').onChange(() => { full_render(); });
+  trapFolder.add(guiParams, 'trapPt3X', -2, 2, 0.01).name('Point 3 X').onChange(() => { full_render(); });
+  trapFolder.add(guiParams, 'trapPt3Y', -2, 2, 0.01).name('Point 3 Y').onChange(() => { full_render(); });
+
   let time_0 = Date.now();
 
   let orbitComputeFn: ((cx: string, cy: string, maxN: number, precision: number) => Float32Array) | null = null;
@@ -118,13 +177,17 @@ function main(): void {
 
   // Pan with mouse drag
   let dragging = false;
+  let mouseX = 0, mouseY = 0;
 
   canvas.addEventListener('mousedown', (e: MouseEvent) => {
+    canvas.focus();
     dragging = true;
     camera.startDrag(e.clientX, e.clientY);
   });
 
   window.addEventListener('mousemove', (e: MouseEvent) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
     if (!dragging) return;
     camera.drag(e.clientX, e.clientY);
     full_render_sif();
@@ -135,6 +198,26 @@ function main(): void {
   canvas.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space') {
       full_render_sif();
+    }
+    // Keys 1-4: set trap points at cursor position
+    const trapIdx = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
+    if (trapIdx >= 0) {
+      const rect = canvas.getBoundingClientRect();
+      const ndcX = (mouseX - rect.left) / rect.width - 0.5;
+      const ndcY = (mouseY - rect.top) / rect.height - 0.5;
+      const aspect = rect.width / rect.height;
+      const wx = ndcX * camera.scale * aspect;
+      const wy = -ndcY * camera.scale;
+      const keys = [
+        ['trapPt0X', 'trapPt0Y'],
+        ['trapPt1X', 'trapPt1Y'],
+        ['trapPt2X', 'trapPt2Y'],
+        ['trapPt3X', 'trapPt3Y'],
+      ] as const;
+      (guiParams as any)[keys[trapIdx][0]] = wx;
+      (guiParams as any)[keys[trapIdx][1]] = wy;
+      gui.controllersRecursive().forEach((c: any) => c.updateDisplay());
+      full_render();
     }
   });
 
@@ -180,7 +263,7 @@ function main(): void {
     const w = canvas.width;
     const h = canvas.height;
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, computeFbo.fbo);
-    gl!.drawBuffers([gl!.COLOR_ATTACHMENT0, gl!.COLOR_ATTACHMENT1]);
+    gl!.drawBuffers([gl!.COLOR_ATTACHMENT0, gl!.COLOR_ATTACHMENT1, gl!.COLOR_ATTACHMENT2, gl!.COLOR_ATTACHMENT3]);
     gl!.viewport(0, 0, w, h);
     gl!.useProgram(computeProgramInfo.program);
     twgl.setBuffersAndAttributes(gl!, computeProgramInfo, fullscreenQuad);
@@ -192,6 +275,10 @@ function main(): void {
       u_colormap:           colormap.texture,
       u_colormapIterNumber: colormap.iterNumber,
       u_dcenter:            [camera.center[0].minus(origin[0]).toNumber(), camera.center[1].minus(origin[1]).toNumber()],
+      u_trapPoint0:         [guiParams.trapPt0X, guiParams.trapPt0Y],
+      u_trapPoint1:         [guiParams.trapPt1X, guiParams.trapPt1Y],
+      u_trapPoint2:         [guiParams.trapPt2X, guiParams.trapPt2Y],
+      u_trapPoint3:         [guiParams.trapPt3X, guiParams.trapPt3Y],
     });
     twgl.drawBufferInfo(gl!, fullscreenQuad);
   }
@@ -207,10 +294,17 @@ function main(): void {
       u_resolution: [w, h],
       u_texZDZ:     computeFbo.texZDZ,
       u_texIter:    computeFbo.texIter,
+      u_texTraps:   computeFbo.texTraps,
+      u_texPtTraps: computeFbo.texPtTraps,
+      u_trapImage:  trapImageTex,
+      u_hasTrapImage: trapImageTex ? 1 : 0,
       u_time:           Date.now() - time_0,
       u_scale:          camera.scale,
-      u_colouring_mode: guiParams.colouringMode === 'Distance' ? 0 : 1,
+      u_colouring_mode: ['Distance', 'Escape Time', 'Orbit Traps', 'Point Traps'].indexOf(guiParams.colouringMode),
       u_shade_de:       guiParams.shadeDE ? 1 : 0,
+      u_speed:          guiParams.speed,
+      u_phase:          guiParams.phase,
+      u_invert:         guiParams.invert ? 1 : 0,
     });
     twgl.drawBufferInfo(gl!, fullscreenQuad);
   }

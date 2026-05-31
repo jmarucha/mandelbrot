@@ -49,7 +49,7 @@ export function pickBestReference(
   colormapIterNumber: number,
 ): [BigNumber, BigNumber] {
   gl.bindFramebuffer(gl.FRAMEBUFFER, setup.fbo);
-  gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3]);
   gl.viewport(0, 0, PICK_SIZE, PICK_SIZE);
   gl.useProgram(computeProgramInfo.program);
   twgl.setBuffersAndAttributes(gl, computeProgramInfo, bufferInfo);
